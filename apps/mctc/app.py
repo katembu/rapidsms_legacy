@@ -85,7 +85,7 @@ class App (rapidsms.app.App):
         try:
             func, captures = self.keyword.match(self, message.text)
         except TypeError:
-            #message.respond(dir(self))
+            '''The functions that process incoming commands should have an attribute 'format'.  This part will look for all the functions that have such an attribute.  The first word of the format should be the command name (ex. new, join).  If the incorrectly formed command has that first word in it, the system will respond with the full format reminder.'''
 
             command_list = [method for method in dir(self) if hasattr(getattr(self,method), "format")]            
             mctc_input = message.text.lower()
