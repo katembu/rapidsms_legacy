@@ -415,7 +415,6 @@ class App (rapidsms.app.App):
     @keyword(r's(?:how)? \+?(\d+)')
     @registered
     def show_case (self, message, ref_id):
-        """THIS IS MY DOCSTRING  """
         case = self.find_case(ref_id)
         info = case.get_dictionary()
 
@@ -432,7 +431,7 @@ class App (rapidsms.app.App):
         reporter    = message.persistant_connection.reporter
         case = self.find_case(ref_id)
         CaseNote(case=case, created_by=reporter, text=note).save()
-        message.respond(_("Note added to case +%s.") % ref_id)
+        message.respond(_("'%s' added to case +%s.") % (note, ref_id))
         
         log(case, "note_added")        
         return True
