@@ -340,9 +340,11 @@ class App (rapidsms.app.App):
         if case.reportdiagnosis_set.count():
             raise HandlerFailed(_(
                 "Cannot cancel +%s: case has diagnosis reports.") % ref_id)
-
+        
+        info = case.get_dictionary()
         case.delete()
-        message.respond(_("Case +%s cancelled.") % ref_id)
+        message.respond(_(("Patient +%(ref_id)s, %(last_name)s, %(first_name)s, "\
+                    "%(gender)s/%(age)s (%(guardian)s), %(location)s. Case +%(ref_id)s cancelled.") % info))
         
         
         log(message.persistant_connection.reporter, "case_cancelled")        
