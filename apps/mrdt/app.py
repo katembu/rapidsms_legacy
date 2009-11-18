@@ -128,7 +128,7 @@ class App (rapidsms.app.App):
         """Expected format for mrdt input, sent as a reminder"""
         return "Format:  mts +[patient_ID\] malaria[+/-] bednet[y/n] symptoms separated by spaces[D CG A F V NR UF B CV CF]"
 
-    @keyword(r'^mts\s*\+?(\d+)\s*([a-zA-z+-])\s*(\S)\s*(.*)$')
+    @keyword(r'^mts\s*\+?(\d+)\s*([a-zA-Z+-])\s*(\S)\s*(.*)$')
     @registered
     def report_malaria(self, message, ref_id, result, bednet, observed):
         """Processes incoming mrdt reports.  Expected format is as above.  Can process inputs without spaces, but symptoms must have spaces between them.  '+' and 'y' register as positive for malaria, all other characters register as negative. 'y' registers as yes for a bednet, all other characters register as no."""
@@ -156,17 +156,19 @@ class App (rapidsms.app.App):
             "reporter_alias":reporter.alias,
             "reporter_identity":reporter.connection().identity,
         })
+        info["instructions"] = ""
+        info["danger"] = ""
 
         # this could all really do with cleaning up
         # note that there is always an alert that goes out
         if not result:
             if observed: info["observed"] = ", (%s)" % info["observed"]
-            msg = _("MRDT> Child +%(ref_id)s, %(last_name)s, %(first_name)s, "\
+            msg = _("MTS> Child +%(ref_id)s, %(last_name)s, %(first_name)s, "\
                     "%(gender)s/%(age)s (%(guardian)s), %(location)s. RDT=%(result_text)s,"\
                     " Bednet=%(bednet_text)s%(observed)s. Please refer patient IMMEDIATELY "\
                     "for clinical evaluation" % info)
             # alerts to health team
-            alert = _("MRDT> Negative MRDT with Fever. +%(ref_id)s, %(last_name)s,"\
+            alert = _("MTS> Negative MTS with Fever. +%(ref_id)s, %(last_name)s,"\
                       " %(first_name)s, %(gender)s/%(age)s %(location)s. Patient "\
                       "requires IMMEDIATE referral. Reported by CHW %(reporter_name)s "\
                       "@%(reporter_alias)s m:%(reporter_identity)s." % info)
@@ -187,6 +189,7 @@ class App (rapidsms.app.App):
 
             # messages change depending upon age and dangers
             dangers = report.observed.filter(uid__in=("vomiting", "appetite", "breathing", "confusion", "fits"))
+            
             # no tabs means too young
             if not tabs:
                 info["instructions"] = "Child is too young for treatment. Please refer IMMEDIATELY to clinic"
@@ -197,26 +200,24 @@ class App (rapidsms.app.App):
                     info["instructions"] = "Refer to clinic after %s "\
                                            " each of Artesunate 50mg and Amodiaquine 150mg is given" % (tabs)
                 else:
-                    info["danger"] = ""
+                    info["danger"] = " "
                     info["instructions"] = "Child is %s. %s each of Artesunate 50mg and Amodiaquine 150mg morning and evening for 3 days" % (yage, tabs)
-
+            
             # finally build out the messages
-            msg = _("Patient +%(ref_id)s, %(first_name)s %(last_name)s, %(gender)s/%(age)s (%(guardian)s). Bednet=%(bednet_text)s %(observed)s.  Patient has MALARIA%(danger)s." % (info))
-
+            msg = _("Patient +%(ref_id)s, %(first_name)s %(last_name)s, %(gender)s/%(age)s (%(guardian)s). Bednet=%(bednet_text)s %(observed)s.  Patient has MALARIA%(danger)s." % info)
             alert = _("MRDT> Child +%(ref_id)s, %(last_name)s, %(first_name)s, "\
                       "%(gender)s/%(months)s (%(location)s) has MALARIA%(danger)s. "\
                       "CHW: @%(reporter_alias)s %(reporter_identity)s" % info)
-
         message.respond(msg)
-        message.respond(_(info["instructions"]))
+        if result:
+            message.respond(_(info["instructions"]))
         """ @todo: enable alerts """
         """
         recipients = report.get_alert_recipients()
         for recipient in recipients:
             message.forward(recipient.mobile, alert)
         """    
-
-        log(case, "mrdt_taken")       
+        log(case, "mrdt_taken")
         return True 
 
     def get_mrdt_report_format_reminder(self):
