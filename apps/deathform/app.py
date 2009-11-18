@@ -134,7 +134,7 @@ class App (rapidsms.app.App):
     
     def get_cdeath_report_format_reminder(self):
         """Expected format for cdeath command, sent as a reminder"""
-        return "Format: death [patient_ID] [date of death ddmmyy] [cause P/B/A/I/S] [location H/C/T/O] [description]"
+        return "Format: cdeath [patient_ID] [date of death ddmmyy] [cause P/B/A/I/S] [location H/C/T/O] [description]"
         
     @keyword("cdeath \+(\d+) (\d+) ([A-Z]) ([A-Z])?(.+)*")
     @registered
