@@ -438,4 +438,55 @@ class App (rapidsms.app.App):
         log(case, "note_added")        
         return True
     note_case.format = "note [patient id] [your note]"
-    
+
+    @keyword(r'(malaria preg)')
+    @registered
+    def malaria_pregnancy_reminder (self, message, topic):
+        message.respond(_("If severe, give quinine injection, 600 mg stat, and bring patient to clinic.  If not severe, just bring patient to clinic."))
+        message.respond(_("Do not give AA in first trimester."))
+        
+        #log(case, "note_added")        
+        return True
+
+    @keyword(r'(pregnancy)')
+    @registered
+    def pregnancy_reminder (self, message, topic):
+        message.respond(_("Give malafan to healthy pregnant patients as a prophylaxis against malaria.  Give after quickening (or after 16 weeks)."))
+        message.respond(_("Give 3 doses in all, each 4 weeks apart.  Dose is 1 tablet stat."))
+        
+        #log(case, "note_added")        
+        return True
+
+    @keyword(r'(diarrhea)')
+    @registered
+    def diarrhea_reminder (self, message, topic):
+        message.respond(_("Give ORS and send patient to clinic.  For severe diarrhea, give 2 or 3 ORS, one at a time, and send patient to clinic."))
+        
+        #log(case, "note_added")        
+        return True
+
+    @keyword(r'(exclusive)')
+    @registered
+    def exclusive_reminder (self, message, topic):
+        message.respond(_("Exclusive breastfeeding builds child's immunity and prevents diseases. Helps the brain develop well. Creates bond between mother and child."))
+        message.respond(_("Prevents diarrhea, helps baby have good bowel movements.  Breastmilk contains all the nutrients a new baby needs."))
+        
+        #log(case, "note_added")        
+        return True       
+
+    @keyword(r'(vaginal)')
+    @registered
+    def vaginal_reminder (self, message, topic):
+        message.respond(_("Patient and partner should both get the same treatment.  They should not have sex during the course of treatment, or they must use a condom."))
+        message.respond(_("Give Ciprofloxacin (500mg stat), and give either Doxycycline (100mg bd for 7 days) or Erythromycin (250mg qid for 2 days)"))
+        
+        #log(case, "note_added")        
+        return True        
+
+
+    @keyword(r'(remind)')
+    @registered
+    def command_reminder (self, message, topic):
+        message.respond(_("malaria preg, pregnancy, diarrhea, exclusive, vaginal"))
+        #log(case, "note_added")        
+        return True      
