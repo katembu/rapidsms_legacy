@@ -116,7 +116,7 @@ class App (rapidsms.app.App):
             "guardian"   : guardian.title(),
             "mobile"     : "",
             "reporter"   : reporter,
-            "location"       : location
+            "location"   : location
         }
         
         abirth = ReportBirth(where=where.upper())
