@@ -1048,12 +1048,21 @@ class ACTConsumptionReport(models.Model, FindReport):
         for key, value in q.items():
             results[key] = value
 
-        latest = ep_reports.latest().act_consumption
-        results['yellow_balance'] = latest.yellow_balance
-        results['blue_balance'] = latest.blue_balance
-        results['brown_balance'] = latest.brown_balance
-        results['green_balance'] = latest.green_balance
-        results['other_act_balance'] = latest.other_act_balance
+        print ep_reports.latest()
+        results['yellow_balance'] = 0
+        results['blue_balance'] = 0
+        results['brown_balance'] = 0
+        results['green_balance'] = 0
+        results['other_act_balance'] = 0
+        for hu in health_units:
+            latest = ep_reports.filter(clinic=hu)
+            if len(latest) > 0:
+                latest = latest.latest().act_consumption
+                results['yellow_balance'] += latest.yellow_balance
+                results['blue_balance'] += latest.blue_balance
+                results['brown_balance'] += latest.brown_balance
+                results['green_balance'] += latest.green_balance
+                results['other_act_balance'] += latest.other_act_balance
 
         return results
 
