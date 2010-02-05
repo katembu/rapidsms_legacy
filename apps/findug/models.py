@@ -1048,7 +1048,6 @@ class ACTConsumptionReport(models.Model, FindReport):
         for key, value in q.items():
             results[key] = value
 
-        print ep_reports.latest()
         results['yellow_balance'] = 0
         results['blue_balance'] = 0
         results['brown_balance'] = 0
