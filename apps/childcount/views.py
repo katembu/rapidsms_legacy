@@ -9,7 +9,8 @@ from urllib import urlencode
 
 from rapidsms.webui.utils import render_to_response
 
-from indicator import Indicator
+#from indicator import Indicator
+from direct_sms.utils import send_msg
 
 from django import forms
 from django.conf import settings
@@ -31,19 +32,19 @@ from reporters.models import PersistantConnection, PersistantBackend
 from locations.models import Location
 
 from childcount.fields import PatientForm
-from childcount.models import Patient, CHW, Configuration, Clinic
-from childcount.utils import clean_names, get_indicators
-from childcount.helpers import site
+from childcount.models import CHW, Configuration
+from childcount.utils import clean_names, get_indicators, servelet
+#from childcount.helpers import site
 
-from reportgen.timeperiods import FourWeeks, Month, TwelveMonths
-from reportgen.models import Report
+#from reportgen.timeperiods import FourWeeks, Month, TwelveMonths
+#from reportgen.models import Report
 
 
 form_config = Configuration.objects.get(key='dataentry_forms').value
 cc_forms = re.split(r'\s*,*\s*', form_config)
 
 @login_required
-@permission_required('childcount.add_encounter')
+#@permission_required('childcount.add_encounter')
 def dataentry(request):
     ''' displays Data Entry U.I. '''
 
@@ -237,67 +238,6 @@ def list_chw(request):
 
     return render_to_response(request, 'childcount/list_chw.html', info)
 
-@login_required
-def patient(request):
-    '''Patients page '''
-    MAX_PAGE_PER_PAGE = 30
-    DEFAULT_PAGE = 1
-
-
-    info = {}
-    patients = Patient.objects.all()
-    try:
-        search = request.GET.get('patient_search','')
-    except:
-        search = ''
-    
-    if search:
-        patients = patients.filter(Q(first_name__icontains=search) | \
-                           Q(last_name__icontains=search) | \
-                           Q(health_id__icontains=search))
-
-    paginator = Paginator(patients, MAX_PAGE_PER_PAGE)
-
-    try:
-        page = int(request.GET.get('page', DEFAULT_PAGE))
-    except:
-        page = DEFAULT_PAGE
-    
-    info['rcount'] = patients.count()
-    info['rstart'] = paginator.per_page * page
-    info['rend'] = (page + 1 * paginator.per_page) - 1
-    
-    
-    try:
-        info['patients'] = paginator.page(page)
-    except:
-        info['patients'] = paginator.page(paginator.num_pages)
-
-    #get the requested page, if its out of range display last page
-    try:
-        current_page = paginator.page(page)
-    except (EmptyPage, InvalidPage):
-        current_page = paginator.page(paginator.num_pages)
-
-    nextlink, prevlink = {}, {}
-
-    if paginator.num_pages > 1:
-        nextlink['page'] = info['patients'].next_page_number()
-        prevlink['page'] = info['patients'].previous_page_number()
-
-        info.update(pagenator(paginator, current_page))
-
-    if search != '':
-        info['search'] = search
-        nextlink['search'] = search
-        prevlink['search'] = search
-    
-    info['prevlink'] = urlencode(prevlink)
-    info['nextlink'] = urlencode(nextlink)
-
-    return render_to_response(\
-                request, 'childcount/patient.html', info)
-
 
 def pagenator(getpages, reports):
     LEADING_PAGE_RANGE_DISPLAYED = TRAILING_PAGE_RANGE_DISPLAYED = 10
@@ -353,51 +293,6 @@ def pagenator(getpages, reports):
             "pages_outside_leading_range": pages_outside_leading_range,
             "pages_outside_trailing_range": pages_outside_trailing_range}
 
-@login_required
-@permission_required('childcount.change_patient')
-def edit_patient(request, healthid):
-    if healthid is None:
-        # Patient to edit was submitted 
-        if 'hid' in request.GET:
-            return HttpResponseRedirect( \
-                "/childcount/patients/edit/%s/" % \
-                    (request.GET['hid'].upper()))
-        # Need to show patient select form
-        else:
-            return render_to_response(request,
-                'childcount/edit_patient.html', {})
-    else: 
-        # Handle invalid health IDs
-        try:
-            patient = Patient.objects.get(health_id=healthid)
-        except Patient.DoesNotExist:
-            return render_to_response(request,
-                'childcount/edit_patient.html', { \
-                'health_id': healthid.upper(),
-                'failed': True})
-
-        # Save POSTed data
-        if request.method == 'POST':
-            form = PatientForm(request.POST, instance=patient)
-            if form.is_valid():
-                print 'saving'
-                print form.save(commit=True)
-                print patient.household
-                return render_to_response(request,
-                    'childcount/edit_patient.html', { \
-                    'health_id': healthid.upper(),
-                    'patient': patient,
-                    'success': True})
-        # Show patient edit form (nothing saved yet)
-        else:
-            form = PatientForm(instance=patient)
-        return render_to_response(request, 
-            'childcount/edit_patient.html', { \
-            'form': form,
-            'patient': patient,
-            'health_id': patient.health_id.upper()
-        })
-
 
 def chw_json(request):
     chws = CHW.objects.all()
@@ -407,48 +302,6 @@ def chw_json(request):
 
     json_data = json.dumps(chwlist)
     return HttpResponse(json_data, mimetype="application/json")
-
-@login_required
-def indicators(request):
-    i=0
-    indicators = []
-    for mems in get_indicators():
-        data = []
-        for m in mems['inds']:
-            if hasattr(m[1].type_in, '__name__'):
-                tin = str(m[1].type_in.__name__)
-            else:
-                tin = str(m[1].type_in.__class__.__name__) + \
-                    "(" + str(m[1].type_in.mtype.__name__) + ")"
-
-            if hasattr(m[1].type_out, '__name__'):
-                tout = str(m[1].type_out.__name__)
-            else:
-                tout = str(m[1].type_out.__class__.__name__)
-
-            data.append({
-                'slug': m[0],
-                'cls': m[1],
-                'type_in': tin,
-                'type_out': tout,
-                'variant_index': "_"+mems['slug']+"_"+m[1].slug,
-                'output_is_number': m[1].output_is_number(),
-                'input_is_query_set': m[1].input_is_query_set(),
-            })
-
-            i += 1
-
-        indicators.append({'name': mems['name'],
-                        'slug': mems['slug'],
-                        'members': data})
-
-    return render_to_response(request, 
-            'childcount/indicators.html', { \
-            'indicators': indicators,
-            'report_pk': Report.objects.get(classname='IndicatorChart').pk
-        })
-
-    
 
 
 '''
@@ -473,4 +326,20 @@ def autocomplete(request):
     return HttpResponse(iter_results(patients), mimetype='text/plain')
 '''
 
+from rapidsms.connection import Connection
+from rapidsms.message import Message
 
+def sms_test(request):
+    backend = PersistantBackend.objects.get(title='pygsm')
+    identity = "254750906055"
+    #msg = backend.message('+254750906055', 'Mose Test')
+    #backend._router.outgoing(msg)
+    #send_msg(backend=backend, identity=identity, text="Hzzxczello !")
+    # send the message to all backends
+    #for backend in self._router.backends:
+    #c = Connection(backend, identity)
+    #msg = Message(connection=c, text='Mose Test', date=datetime.now())
+    #msg.send()
+
+def test_servelet(request):
+    return HttpResponse(servelet())

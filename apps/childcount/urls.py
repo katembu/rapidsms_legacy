@@ -9,7 +9,6 @@ from django.contrib import admin
 import webapp
 
 from childcount import views
-from childcount import uploadhealthids
 
 admin.autodiscover()
 
@@ -35,21 +34,16 @@ urlpatterns = patterns('',
 
     url(r'^$', views.index, name='dashboard'),
     url(r'^childcount/?$', views.index, name='cc-dashboard'),
-    url(r'^childcount/patients/?$', views.patient, name='cc-patients'),
-    url(r'^childcount/patients/edit/((?P<healthid>[a-zA-Z0-9]+)/)?$',
-        views.edit_patient, name='cc-edit_patient'),
-    url(r'^childcount/patients/(?P<page>\d+)/?$', views.patient),
 
     url(r'^childcount/chws.json/?$', views.chw_json),
     url(r'^childcount/add_chw/?$', views.add_chw, name='cc-add_chw'),
     url(r'^childcount/list_chw/?$', views.list_chw, name='cc-list_chw'),
-    url(r'^childcount/indicators/?$', views.indicators, name='cc-indicators'),
 
     url(r'^childcount/dataentry/?$', views.dataentry, name='cc-dataentry'),
+    url(r'^childcount/test/', views.sms_test, name='TEST'),
     url(r'^childcount/dataentry/form/(?P<formid>[a-zA-Z0-9\-\_\.]*)/?$', \
                         views.form, name='form'),
     url(r'^childcount/site_summary/(?P<report>[a-z_]*)/(?P<format>[a-z]*)$', \
         views.site_summary),
 
-    url(r'^childcount/upload-healthid-file', uploadhealthids.upload_file, name='cc-upload-hids'),
 )

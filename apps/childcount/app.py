@@ -17,7 +17,7 @@ from reporters.models import Reporter
 from locations.models import Location
 
 from childcount.models import Configuration as Cfg
-from childcount.models import Patient, Encounter, FormGroup, CHW
+from childcount.models import Patient,  CHW
 from childcount.forms import *
 from childcount.commands import *
 from childcount.exceptions import *
@@ -38,7 +38,8 @@ class App (rapidsms.app.App):
     forms = []
 
     def configure(self, title='ChildCount', tab_link='/childcount', \
-                  forms=None, commands=None):
+                  forms=None, commands=None, serverlet_port = None, \
+                   serverlet_host = None):
         """Load CC+ forms and commands"""
 
         if forms is not None:
@@ -277,79 +278,9 @@ class App (rapidsms.app.App):
                                      'fake_chw': chw}, 'error')
                 return handled
         
-            # If all of the forms are household forms and the patient is not
-            # head of household, don't proceed to process.  If there is one
-            # or more household forms mixed with one or more individual forms
-            # that will get caught later.
-            patient_filter = lambda form: form.ENCOUNTER_TYPE == \
-                                                       Encounter.TYPE_PATIENT
-            patient_forms = filter(patient_filter, \
-                                   pre_processed_form_objects)
-            if len(patient_forms) == 0 and not patient.is_head_of_household():
-                message.respond(_(u"Error: You tried to send househould " \
-                                  "forms for someone who is not head of" \
-                                  "household. You must send the forms with " \
-                                  "the head of household health ID." \
-                                  "Their head of household health ID " \
-                                  "is %(hoh)s (Health ID: %(hohid)s)") % \
-                              {'hoh': patient.household.full_name(), \
-                               'hohid': patient.household.health_id.upper()}, \
-                               'error')
 
-                return handled
-
-            encounters = {}
-            encounters[Encounter.TYPE_PATIENT] = None
-            encounters[Encounter.TYPE_HOUSEHOLD] = None
-
-            form_groups = {}
-            form_groups[Encounter.TYPE_PATIENT] = None
-            form_groups[Encounter.TYPE_HOUSEHOLD] = None
             for form in pre_processed_form_objects:
                 keyword = form.params[0]
-
-                if form.ENCOUNTER_TYPE == Encounter.TYPE_HOUSEHOLD and \
-                   not patient.is_head_of_household():
-                    failed_forms.append({'keyword': keyword, \
-                                         'error': _(u"This form is only for " \
-                                                    "head of households.")})
-                    continue
-
-                # If we haven't created the encounter objects, we'll create
-                # them now.
-                if encounters[form.ENCOUNTER_TYPE] is None:
-                    try:
-                        # Look for an encounter of the same type
-                        # for the same person within TIMEOUT
-                        # minutes.
-                        encounters[form.ENCOUNTER_TYPE] = \
-                            Encounter.objects.filter(chw=chw, \
-                                 patient=patient, \
-                                 type=form.ENCOUNTER_TYPE, \
-                                 encounter_date__gte=encounter_date-\
-                                    timedelta(minutes=Encounter.TIMEOUT),
-                                 encounter_date__lte=encounter_date+\
-                                    timedelta(minutes=Encounter.TIMEOUT))\
-                                 .latest('encounter_date')
-                        if not encounters[form.ENCOUNTER_TYPE].is_open == True:
-                            raise Encounter.DoesNotExist
-                    except Encounter.DoesNotExist:
-                        encounters[form.ENCOUNTER_TYPE] = \
-                                    Encounter(chw=chw, patient=patient, \
-                                              type=form.ENCOUNTER_TYPE, \
-                                              encounter_date=encounter_date)
-                        encounters[form.ENCOUNTER_TYPE].save()
-
-                    form_groups[form.ENCOUNTER_TYPE] = FormGroup(
-                           entered_by=reporter, \
-                           backend=message.persistant_connection.backend, \
-                           encounter=encounters[form.ENCOUNTER_TYPE])
-                    form_groups[form.ENCOUNTER_TYPE].save()
-
-                # Set encounter and form_group in the Form object to the ones
-                # created above
-                form.encounter = encounters[form.ENCOUNTER_TYPE]
-                form.form_group = form_groups[form.ENCOUNTER_TYPE]
 
                 try:
                     form.process(patient)
@@ -360,30 +291,7 @@ class App (rapidsms.app.App):
                     successful_forms.append({'keyword': keyword, \
                                              'response': form.response, \
                                              'obj': form})
-                    # Append this successful form class name to the comma
-                    # delimited list in FormGroup.
-                    class_name = form.__class__.__name__
-                    if not form_groups[form.ENCOUNTER_TYPE].forms:
-                        form_groups[form.ENCOUNTER_TYPE].forms = class_name
-                    else:
-                        form_groups[form.ENCOUNTER_TYPE].forms += \
-                                                               ',' + class_name
-                    form_groups[form.ENCOUNTER_TYPE].save()
 
-            for form_type in [Encounter.TYPE_PATIENT, \
-                              Encounter.TYPE_HOUSEHOLD]:
-                # Delete the form_group objects if there weren't any successful
-                # forms.
-                if form_groups[form_type] and not form_groups[form_type].forms:
-                    form_groups[form_type].delete()
-
-                # At this point, if the encounter object doesn't have a single
-                # FormGroup pointing to it, then no forms were successful this
-                # time and there were no previously successful forms for that
-                # encounter, so we delete it
-                if encounters[form_type] and \
-                   encounters[form_type].formgroup_set.all().count() == 0:
-                    encounters[form_type].delete()
 
             successful_string = ''
             if successful_forms:
@@ -495,5 +403,3 @@ class App (rapidsms.app.App):
        # TODO: what could go wrong here?
        be = self.router.get_backend(pconn.backend.slug)
        return be.message(pconn.identity, post["text"]).send()
-
-

@@ -8,13 +8,14 @@ import sys
 import os.path
 import re
 import glob
+import random
 import itertools
 from datetime import date, timedelta, datetime
 from functools import wraps
 from ethiopian_date import EthiopianDateConverter
 
 import rapidsms
-import urllib2
+import urllib2, urllib
 
 from urllib import urlencode
 
@@ -708,23 +709,6 @@ def send_msg(reporter, text):
     stream = urllib2.urlopen(req)
     stream.close()
 
-def get_ccforms_by_name():
-    from childcount.forms import *
-    ''' returns a list of childcount forms grouped Encounter type '''
-    conf = settings.RAPIDSMS_APPS['childcount']
-    formlist = conf['forms'].replace(' ', '').split(',')
-    forms = {}
-    for form in formlist:
-        try:
-            f = eval(form)
-        except NameError:
-            continue
-
-        if f.ENCOUNTER_TYPE not in forms:
-            forms[f.ENCOUNTER_TYPE] = []
-        forms[f.ENCOUNTER_TYPE].append(form)
-    return forms
-
 def get_indicators():
     modules = glob.glob(os.path.dirname(__file__)+'/indicators/*.py')
     base = 'childcount.indicators.'
@@ -764,5 +748,70 @@ def alert_health_team(name, msg):
 
         sms_alert.name = name
         sms_alert.save()
+
+def random_id():
+    '''Generate random Id for registration  
+    Remove ones that might be visually confusing from base #l1o0i
+    '''
+    N = 4
+    BASE_CHARACTERS = u'123456789ABCDEFGHJKLMNPQRSTUVWXYZ'
+    RANDOM_ID = ''.join(random.choice(BASE_CHARACTERS ) for x in range(N))
+
+    return RANDOM_ID
+
+import ipdb
+def servelet():
+
+    """
+    Push to serverlets then save
+    Params:
+        * location
+        * patient names
+        * gender
+        * age or DOB
+        * birth date
+        * place of birth
+        * mobile
+        * event_type
+    
+    try:
+        from childcount.models import Patient
         
+    except Patient.DoesNotExist:
+        print "Error"
+    """
+
+    conf = settings.RAPIDSMS_APPS['childcount']
+    url = "http://%s:%s/index.php" % (conf["serverlet_host"],\
+                                                 conf["serverlet_port"])
+
+    from childcount.models import Patient
+
+    #print url
+    p =  Patient.objects.get(pk=5)
+    
+    data = {'location': p.location.pk, \
+            'patient': p.full_name(), \
+            'gender': p.gender, \
+            'dob': p.dob, \
+            'dod': p.dod, \
+            'mobile': p.mobile, \
+            'place': p.place, \
+            'chw': p.chw.id, \
+            'event_type': p.event_type
+            }
+
+    request = urllib2.Request(url)
+    request.add_data(urllib.urlencode(data))
+    response = ''.join(urllib2.urlopen(request).read()).strip()
+    if response=='ok':
+        print "ok"
+        p.sync_oxd = p.STATUS_SUCCESSFULL
+        p.save()
+    else:
+        print "failed"
+        p.sync_oxd = p.STATUS_FAILED
+        p.save()
+
+
 

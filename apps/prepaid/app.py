@@ -10,8 +10,8 @@ from datetime import datetime
 
 import rapidsms
 
-from apps.prepaid.models import Configuration, MessageLog, Record
-from apps.simpleoperator.operators import *
+from prepaid.models import Configuration, MessageLog, Record
+from simpleoperator.operators import *
 
 
 def get_sim_balance(modem, carrier):

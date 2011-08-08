@@ -7,7 +7,7 @@
 Stores the USSD messages to send and answers parsers
 to interact with carrier's prepaid topup services '''
 
-from apps.simpleoperator.simpleoperator import *
+from simpleoperator import *
 
 # Following is a list of operators
 # all subclassing SimpleOperator
@@ -73,8 +73,8 @@ class Malitel(SimpleOperator):
     messages to/from operator'''
 
     CAPABILITIES = {'USSD_BALANCE': True, 'USSD_TOPUP': True}
-    BALANCE_USSD = "*101#"
-    TOPUP_USSD = "*102#"
+    BALANCE_USSD = "*133#"
+    TOPUP_USSD = "*122#"
     TOPUP_USSD_FMT = "%s%s#"
 
     def get_balance(self, operator_string):

@@ -5,6 +5,7 @@ import datetime
 
 from django.utils.translation import ugettext as _
 
+
 from childcount.models import Patient
 
 from childcount.indicators import fever

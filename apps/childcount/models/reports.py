@@ -282,9 +282,11 @@ class BirthReport(CCReport):
     clinic_delivery = models.CharField(_(u"Clinic delivery"), max_length=1, \
                                        choices=CLINIC_DELIVERY_CHOICES, \
                                        help_text=_(u"Was the baby born in " \
-                                                    "a health facility?"))
+                                                    "a health facility?"),\
+                                        db_index=True)
 
-    weight = models.FloatField(_(u"Birth weight (kg)"), null=True, blank=True)
+    weight = models.FloatField(_(u"Birth weight (kg)"), null=True, blank=True,\
+                                        db_index=True)
 
     def summary(self):
         string = u"%s: %s" % \
@@ -390,9 +392,10 @@ class StillbirthMiscarriageReport(CCReport):
                        (TYPE_STILL_BIRTH, _('Stillbirth')),
                        (TYPE_MISCARRIAGE, _('Miscarriage')))
 
-    incident_date = models.DateField(_(u"Date of stillbirth or miscarriage"))
-    type = models.CharField(_(u"Type"), max_length=1, choices=TYPE_CHOICES, \
-                            blank=True, null=True)
+    incident_date = models.DateField(_(u"Date of stillbirth or miscarriage"),\
+                            db_index=True)
+    type = models.CharField(_(u"Type"), max_length=1, choices=TYPE_CHOICES,\
+                            blank=True, null=True, db_index=True)
 
     def summary(self):
         if self.type is None:

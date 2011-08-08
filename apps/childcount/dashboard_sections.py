@@ -10,12 +10,12 @@
 from django.utils import simplejson
 from django.utils.translation import ugettext as _
 
-from childcount.models import Patient
-from childcount.indicators import nutrition
-from childcount.helpers import site
+#from childcount.models import Patient
+#from childcount.indicators import nutrition
+#from childcount.helpers import site
 
 from reportgen.timeperiods import Month, FourWeeks
-
+'''
 def registration_chart():
     """
     This method corresponds to the template 
@@ -27,12 +27,12 @@ def registration_chart():
     
     days_past, num_registrations = Patient.registrations_by_date()
     
-    reg_chart_data = { 'yAxis': _(u"Total Number of Patients"), \
+    reg_chart_data = { 'yAxis': _(u"Total Number of Birth"), \
                        'xAxis': _(u"Number of days ago"),
             'daysPast' : days_past, 'regCount': num_registrations }
     
     return simplejson.dumps(reg_chart_data)
-
+'''
 
 def highlight_stats_bar():
     """
@@ -40,10 +40,10 @@ def highlight_stats_bar():
     
     This :func:`dict` is structured to easily pump into an HTML table.
     """
-    return {'titles': [_(u"# of Households"), _(u"# of Patients"), \
-                       _(u"# of Underfives"), _(u"# of Pregnant Women")], \
+    return {'titles': [_(u"# of Birth"), _(u"# of Deaths"), \
+                       _(u"# Verified Birth"), _(u"# Verified Death")], \
                         'data': [532, 1521, 534, 0] }
-
+'''
 def nutrition_chart():
     """Data for a pie chart
     of nutrition statistics.
@@ -59,6 +59,7 @@ def nutrition_chart():
                                     [_(u"Moderate"), moderate]]
     
     return simplejson.dumps(nutrition_data_for_dashboard)
+
 
 def recent_numbers():
     """
@@ -81,4 +82,5 @@ def recent_numbers():
         recent_numbers_data.append([row[0], [generated_report_data[dt[1]][row_id] for dt in recent_numbers_columns]])
     
     return {'columns': [c[0] for c in recent_numbers_columns], 'rows': recent_numbers_data}
-    
+
+'''
